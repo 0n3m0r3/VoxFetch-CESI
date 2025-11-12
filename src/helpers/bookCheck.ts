@@ -1,13 +1,14 @@
 import type { Page } from "playwright";
 
-export type BookStatus = "FOUND" | "REMOVED" | "NOT_FOUND";
+export type BookStatus = "FOUND" | "REMOVED" | "NOT_FOUND" | "AVAILABLE_SOON";
 
 /**
  * Check availability on the catalog page:
  *   https://univ.scholarvox.com/catalog/book/docid/<docid>
  *
  * Signals:
- *  - REMOVED: presence of .removedFlag or “Cet ouvrage n'est plus disponible”.
+ *  - REMOVED: presence of .removedFlag or "Cet ouvrage n'est plus disponible".
+ *  - AVAILABLE_SOON: presence of "Cet ouvrage sera bientôt disponible".
  *  - FOUND: a non-empty visible title exists (e.g., .item.book .title h2).
  *  - NOT_FOUND: HTTP not OK, obvious error routes, or no valid title.
  */
@@ -50,6 +51,12 @@ export async function checkBookStatus(
     .isVisible()
     .catch(() => false);
   if (notAvailVisible) return "REMOVED";
+
+  // Check for "available soon" status
+  const pageContent = await page.content();
+  if (pageContent.toLowerCase().includes("cet ouvrage sera bientôt disponible")) {
+    return "AVAILABLE_SOON";
+  }
 
   // A valid book page should expose a non-empty title
   const titleLocator = page

@@ -80,6 +80,11 @@ async function validateBook(docid: string): Promise<boolean> {
           "Error: This book has been removed or is no longer available.\n"
         );
         return false;
+      case "AVAILABLE_SOON":
+        spinner.stop(
+          "Error: This book will be available soon but is not currently accessible.\n"
+        );
+        return false;
       case "NOT_FOUND":
         spinner.stop(
           "Error: Book ID not found. Please check the ID and try again.\n"
