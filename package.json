@@ -19,6 +19,7 @@
     "playwright:install": "playwright install chromium"
   },
   "dependencies": {
+    "@napi-rs/keyring": "^1.2.0",
     "commander": "^14.0.2",
     "dotenv": "^17.2.3",
     "pdf-lib": "^1.17.1",

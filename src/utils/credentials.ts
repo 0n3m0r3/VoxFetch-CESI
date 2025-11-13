@@ -1,14 +1,13 @@
 /**
  * Credential management for CESI login
+ * Uses OS-level secure credential storage (Windows Credential Manager, macOS Keychain, Linux Secret Service)
  */
 
-import fs from "node:fs/promises";
-import path from "node:path";
-import { homedir } from "node:os";
+import { Entry } from "@napi-rs/keyring";
 import readline from "node:readline";
 
-const CONFIG_DIR = path.join(homedir(), ".voxfetch-cesi");
-const CONFIG_FILE = path.join(CONFIG_DIR, "credentials");
+const SERVICE_NAME = "voxfetch-cesi";
+const ACCOUNT_KEY = "cesi-credentials";
 
 interface Credentials {
   email: string;
@@ -79,69 +78,54 @@ function askQuestion(
 }
 
 /**
- * Simple XOR encoding for basic obfuscation
- * NOT cryptographically secure, but better than plaintext
+ * Save credentials to OS keychain
  */
-function encode(text: string): string {
-  const key = "voxfetch-cesi-2025";
-  let result = "";
-  for (let i = 0; i < text.length; i++) {
-    result += String.fromCharCode(
-      text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-    );
-  }
-  return Buffer.from(result).toString("base64");
-}
-
-function decode(encoded: string): string {
-  const key = "voxfetch-cesi-2025";
-  const text = Buffer.from(encoded, "base64").toString();
-  let result = "";
-  for (let i = 0; i < text.length; i++) {
-    result += String.fromCharCode(
-      text.charCodeAt(i) ^ key.charCodeAt(i % key.length)
-    );
-  }
-  return result;
-}
-
 export async function saveCredentials(
   email: string,
   password: string
 ): Promise<void> {
-  await fs.mkdir(CONFIG_DIR, { recursive: true });
-
-  const data = {
-    email: encode(email),
-    password: encode(password),
-  };
-
-  await fs.writeFile(CONFIG_FILE, JSON.stringify(data, null, 2), {
-    mode: 0o600,
-  });
-  console.log("Credentials saved securely.");
+  try {
+    const entry = new Entry(SERVICE_NAME, ACCOUNT_KEY);
+    const data = JSON.stringify({ email, password });
+    entry.setPassword(data);
+    console.log("Credentials saved securely to system keychain.");
+  } catch (error) {
+    console.error("Failed to save credentials:", error);
+    throw error;
+  }
 }
 
+/**
+ * Load credentials from OS keychain
+ */
 export async function loadCredentials(): Promise<Credentials | null> {
   try {
-    const data = await fs.readFile(CONFIG_FILE, "utf-8");
+    const entry = new Entry(SERVICE_NAME, ACCOUNT_KEY);
+    const data = entry.getPassword();
+    if (!data) {
+      return null;
+    }
     const parsed = JSON.parse(data);
-
     return {
-      email: decode(parsed.email),
-      password: decode(parsed.password),
+      email: parsed.email,
+      password: parsed.password,
     };
   } catch (error) {
+    // Credentials not found or error reading
     return null;
   }
 }
 
+/**
+ * Delete credentials from OS keychain
+ */
 export async function deleteCredentials(): Promise<void> {
   try {
-    await fs.unlink(CONFIG_FILE);
-    console.log("Credentials deleted.");
+    const entry = new Entry(SERVICE_NAME, ACCOUNT_KEY);
+    entry.deletePassword();
+    console.log("Credentials deleted from system keychain.");
   } catch (error) {
-    // File doesn't exist, that's fine
+    // Credentials don't exist, that's fine
   }
 }
 

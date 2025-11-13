@@ -92,15 +92,19 @@ npm run download:debug
 
 ### Saved Credentials
 
-Credentials are stored locally in `~/.voxfetch-cesi/credentials` (encoded, not encrypted).
+Credentials are stored securely in your system's credential manager:
+- **Windows:** Credential Manager (encrypted with DPAPI)
+- **macOS:** Keychain
+- **Linux:** Secret Service
 
 To delete saved credentials:
 ```bash
-# Windows (PowerShell)
-Remove-Item -Recurse -Force ~\.voxfetch-cesi
+# Windows: Open Credential Manager and remove "voxfetch-cesi" entry
+# Or run the tool and choose "n" when asked to use saved credentials
 
-# macOS/Linux
-rm -rf ~/.voxfetch-cesi
+# macOS: Open Keychain Access and search for "voxfetch-cesi"
+
+# Linux: Use your system's credential manager
 ```
 
 ---
