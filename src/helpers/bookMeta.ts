@@ -1,6 +1,51 @@
 // src/helpers/bookMeta.ts
 import { Page } from "playwright";
 
+export async function getBookTitle(
+  page: Page,
+  docid: string
+): Promise<string | null> {
+  const url = `https://univ.scholarvox.com/catalog/book/docid/${encodeURIComponent(
+    docid
+  )}`;
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+  // Try to get the title from the most specific selector first
+  const titleText = await page.evaluate(() => {
+    // Priority 1: Look for .title h2 (this contains the actual book title)
+    const titleH2 = document.querySelector(".title h2");
+    if (titleH2?.textContent?.trim()) {
+      return titleH2.textContent.trim();
+    }
+
+    // Priority 2: Try .book-title class
+    const bookTitleClass = document.querySelector(".book-title");
+    if (bookTitleClass?.textContent?.trim()) {
+      return bookTitleClass.textContent.trim();
+    }
+
+    // Priority 3: Try h1 in the main content area
+    const h1 = document.querySelector("main h1, .content h1, .book-info h1");
+    if (h1?.textContent?.trim()) {
+      return h1.textContent.trim();
+    }
+
+    return null;
+  });
+  
+  if (titleText && titleText.length > 0) {
+    // Sanitize the title for use as a filename
+    return titleText
+      .replace(/[<>:"/\\|?*]/g, "") // Remove invalid filename characters
+      .replace(/\s+/g, "-") // Replace spaces with hyphens
+      .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
+      .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
+      .substring(0, 100); // Limit length
+  }
+  
+  return null;
+}
+
 export async function getBookTotalPages(
   page: Page,
   docid: string

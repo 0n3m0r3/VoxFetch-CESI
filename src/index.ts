@@ -4,6 +4,7 @@ import readline from "node:readline";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { checkBookStatus } from "./helpers/bookCheck.js";
+import { getBookTitle } from "./helpers/bookMeta.js";
 import { getCredentials } from "./utils/credentials.js";
 import { loginCESI } from "./utils/auth.js";
 
@@ -375,7 +376,21 @@ async function main() {
   const isValid = await validateBook(docid);
   if (!isValid) process.exit(1);
 
-  const defaultOutput = `output/${docid}.pdf`;
+  // Get book title for default filename
+  const spinner = new Spinner();
+  spinner.start("Fetching book information...");
+  
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  
+  const bookTitle = await getBookTitle(page, docid);
+  await browser.close();
+  
+  spinner.stop();
+
+  const defaultFilename = bookTitle ? `${bookTitle}-${docid}.pdf` : `${docid}.pdf`;
+  const defaultOutput = `output/${defaultFilename}`;
   const outputAnswer = await ask(`Output file (default: ${defaultOutput}): `);
   let outputPath = outputAnswer || defaultOutput;
 
