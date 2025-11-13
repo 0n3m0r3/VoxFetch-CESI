@@ -45,7 +45,7 @@ ScholarVox only lets you read books online. This tool downloads them as proper P
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/voxfetch-cesi.git
+git clone https://github.com/0n3m0r3/VoxFetch-CESI.git
 cd voxfetch-cesi
 
 # Install dependencies
