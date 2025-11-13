@@ -377,7 +377,12 @@ async function main() {
 
   const defaultOutput = `output/${docid}.pdf`;
   const outputAnswer = await ask(`Output file (default: ${defaultOutput}): `);
-  const outputPath = outputAnswer || defaultOutput;
+  let outputPath = outputAnswer || defaultOutput;
+
+  // Ensure the filename ends with .pdf
+  if (!outputPath.toLowerCase().endsWith('.pdf')) {
+    outputPath += '.pdf';
+  }
 
   console.log("");
   await downloadBook(docid, outputPath);
