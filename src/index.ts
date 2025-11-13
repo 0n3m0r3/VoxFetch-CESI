@@ -107,7 +107,14 @@ async function downloadBook(docid: string, outputPath: string) {
   log(`Output: ${outputPath}\n`);
 
   const creds = await getCredentials();
-  const browser = await chromium.launch({ headless: false });
+  const browser = await chromium.launch({ 
+    headless: true,
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      "--disable-features=site-per-process",
+      "--disable-site-isolation-trials",
+    ],
+  });
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
   });
