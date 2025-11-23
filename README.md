@@ -125,6 +125,7 @@ To delete saved credentials:
 
 **PDF is blank or incomplete**
 - Some books may have loading issues
+- Try running it again if the error persists, 
 - Try running with `npm run download:debug` to see what's happening
 
 ---
