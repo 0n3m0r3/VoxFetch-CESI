@@ -3,10 +3,12 @@ import { chromium } from "playwright";
 import readline from "node:readline";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { PDFDocument } from "pdf-lib";
 import { checkBookStatus } from "./helpers/bookCheck.js";
 import { getBookTitle } from "./helpers/bookMeta.js";
 import { getCredentials } from "./utils/credentials.js";
 import { loginCESI } from "./utils/auth.js";
+import { addLinksToPdf, LinkData } from "./utils/pdfLinks.js";
 
 const DEBUG = process.argv.includes("--debug") || process.argv.includes("-d");
 
@@ -328,7 +330,7 @@ async function downloadBook(docid: string, outputPath: string) {
 
     spinner.start(`Generating PDF (${totalPages} pages)...`);
 
-    const pdfBuffer = await iframePage.pdf({
+    let pdfBuffer = await iframePage.pdf({
       width: `${widthInches}in`,
       height: `${heightInches}in`,
       printBackground: true,
@@ -339,6 +341,35 @@ async function downloadBook(docid: string, outputPath: string) {
 
     spinner.stop();
     if (DEBUG) log("PDF generated");
+
+    // Extract and add clickable links to PDF
+    const linkSpinner = new Spinner();
+    linkSpinner.start("Adding clickable links...");
+
+    try {
+      const { links, debug } = await extractLinksFromPage(iframePage);
+      
+      // Debug output
+      if (debug && DEBUG) {
+        console.log(`\n[Extract Debug] CSS base: .w0=${debug.cssW0}px, .h0=${debug.cssH0}px`);
+        console.log(`[Extract Debug] Link coord space: ${debug.computed.w.toFixed(1)}x${debug.computed.h.toFixed(1)}px`);
+      }
+      
+      if (DEBUG) log(`Found ${links.length} links`);
+
+      if (links.length > 0) {
+        const pdfDoc = await PDFDocument.load(pdfBuffer);
+        await addLinksToPdf(pdfDoc, links, DEBUG); // Show borders only in debug mode
+        pdfBuffer = Buffer.from(await pdfDoc.save());
+        linkSpinner.stop(`Added ${links.length} clickable links`);
+      } else {
+        linkSpinner.stop("No links found");
+      }
+    } catch (linkErr: any) {
+      linkSpinner.stop();
+      if (DEBUG) log(`Link extraction failed: ${linkErr.message}`);
+      // Continue without links - PDF is still valid
+    }
 
     await fs.mkdir(path.dirname(outputPath), { recursive: true });
     await fs.writeFile(outputPath, pdfBuffer);
@@ -407,3 +438,140 @@ main().catch(err => {
   console.error("Fatal error:", err);
   process.exit(1);
 });
+
+/**
+ * Extract link data from the HTML page
+ * Links are structured as: <a class="l" href="..."><div style="position:absolute;left:X;bottom:Y;width:W;height:H"></div></a>
+ * The <a> has no dimensions, the child <div> defines the clickable area
+ * 
+ * Important: The HTML uses CSS positioning with 'bottom' (distance from bottom).
+ * The page containers have CSS transforms applied, so we need to get the
+ * untransformed dimensions from the .pf element's style attribute.
+ */
+async function extractLinksFromPage(
+  page: import("playwright").Page
+): Promise<{ links: LinkData[], debug?: { cssW0: number; cssH0: number; originalScale: number; computed: { w: number; h: number } } }> {
+  return await page.evaluate(() => {
+    const links: Array<{
+      pageIndex: number;
+      rect: { x: number; y: number; width: number; height: number };
+      pageBounds: { width: number; height: number };
+      href: string;
+      hashTargetPageIndex?: number;
+    }> = [];
+    
+    let debugInfo: { cssW0: number; cssH0: number; originalScale: number; computed: { w: number; h: number } } | undefined;
+
+    // Parse CSS class definitions from <style> tags to get original dimensions
+    // pdf2htmlEX uses classes like .w0{width:612.000000px;} and .h0{height:792.000000px;}
+    let cssWidth0 = 0;
+    let cssHeight0 = 0;
+    const styleSheets = document.querySelectorAll('style');
+    for (const styleEl of styleSheets) {
+      const cssText = styleEl.textContent || '';
+      
+      // Look for .w0{width:XXXpx} pattern
+      const w0Match = cssText.match(/\.w0\s*\{\s*width:\s*([\d.]+)px/);
+      if (w0Match) cssWidth0 = parseFloat(w0Match[1]);
+      
+      // Look for .h0{height:XXXpx} pattern  
+      const h0Match = cssText.match(/\.h0\s*\{\s*height:\s*([\d.]+)px/);
+      if (h0Match) cssHeight0 = parseFloat(h0Match[1]);
+      
+      if (cssWidth0 > 0 && cssHeight0 > 0) break;
+    }
+    
+    // The link coordinates are in the CSS BASE dimension space (e.g., 612×792 px)
+    // which is defined by .w0 and .h0 CSS classes.
+    // The links are positioned absolutely within the .pc container using the original
+    // PDF coordinate system, NOT the scaled inline style dimensions.
+    //
+    // This is evident from examining link positions like:
+    //   left:72px, bottom:703px (fits within 612×792, NOT 730×945)
+    //   left:241px, bottom:163px (fits within 612×792)
+    
+    const originalPageWidth = cssWidth0 || 612;  // Use CSS base dimensions directly
+    const originalPageHeight = cssHeight0 || 792;
+    const originalScale = 1.0; // No scale - links are in base CSS dimensions
+
+    // Build a map of page ID (hex) -> 0-based page index
+    const pageIdToIndex: Record<string, number> = {};
+    const pageContainers = document.querySelectorAll('.pf[data-page-no]');
+    pageContainers.forEach((el, index) => {
+      const pageNo = el.getAttribute('data-page-no');
+      if (pageNo) {
+        pageIdToIndex[pageNo] = index;
+        // Also map with 'pf' prefix for easier lookup
+        pageIdToIndex[`pf${pageNo}`] = index;
+      }
+    });
+
+    // Find all link elements
+    const linkElements = document.querySelectorAll('a.l');
+    
+    linkElements.forEach(anchor => {
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+
+      // Get the child div that defines the clickable area
+      const childDiv = anchor.querySelector('div.d') as HTMLElement;
+      if (!childDiv) return;
+
+      // Parse position from inline style
+      const style = childDiv.style;
+      const left = parseFloat(style.left) || 0;
+      const bottom = parseFloat(style.bottom) || 0;
+      const width = parseFloat(style.width) || 0;
+      const height = parseFloat(style.height) || 0;
+
+      if (width === 0 || height === 0) return;
+
+      // Find the parent page container to determine page index
+      const pageContainer = anchor.closest('.pf[data-page-no]');
+      if (!pageContainer) return;
+
+      const pageNo = pageContainer.getAttribute('data-page-no');
+      if (!pageNo) return;
+
+      const pageIndex = pageIdToIndex[pageNo];
+      if (pageIndex === undefined) return;
+
+      // Use the calculated original page dimensions
+      const pageBounds = {
+        width: originalPageWidth || 730, // fallback
+        height: originalPageHeight || 945, // fallback
+      };
+      
+      // Capture debug info for first link only
+      if (!debugInfo) {
+        debugInfo = {
+          cssW0: cssWidth0,
+          cssH0: cssHeight0, 
+          originalScale,
+          computed: { w: originalPageWidth, h: originalPageHeight }
+        };
+      }
+
+      // Determine if this is an internal link
+      let hashTargetPageIndex: number | undefined;
+      if (href.includes('#pf')) {
+        // Extract the page ID from the hash
+        const hashMatch = href.match(/#(pf[0-9a-f]+)/i);
+        if (hashMatch) {
+          const targetId = hashMatch[1];
+          hashTargetPageIndex = pageIdToIndex[targetId];
+        }
+      }
+
+      links.push({
+        pageIndex,
+        rect: { x: left, y: bottom, width, height },
+        pageBounds,
+        href,
+        hashTargetPageIndex,
+      });
+    });
+
+    return { links, debug: debugInfo };
+  });
+}

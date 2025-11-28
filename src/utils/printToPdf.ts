@@ -1,19 +1,55 @@
 import { Page } from "playwright";
+import { PDFDocument } from "pdf-lib";
+import { addLinksToPdf, LinkData } from "./pdfLinks";
+
+/**
+ * Options for PDF generation
+ */
+export interface PrintToPdfOptions {
+  /** PDF scale factor (0.5-1.0). Lower = zoom out more. Default 0.4 */
+  scale?: number;
+  /** The specific page number to extract (1-indexed). If provided, will scroll to and isolate that page. */
+  pageNumber?: number;
+  /** Whether to add clickable link annotations to the PDF. Default true for full PDF, false for single page. */
+  addLinks?: boolean;
+  /** If true, draw visible borders around links for debugging. Default false. */
+  showLinkBorders?: boolean;
+}
 
 /**
  * Print ScholarVox page to PDF using browser's native print function
  * This preserves text selectability and uses vector fonts
  * @param page - The Playwright page
  * @param getIframeUrl - Function to extract the iframe URL from the page
- * @param scale - PDF scale factor (0.5-1.0). Lower = zoom out more. Default 0.4
- * @param pageNumber - The specific page number to extract (1-indexed). If provided, will scroll to and isolate that page.
+ * @param scaleOrOptions - Either a scale number (legacy) or options object
+ * @param pageNumber - Legacy: The specific page number to extract (1-indexed)
  */
 export async function printScholarVoxPageToPDF(
   page: Page,
   getIframeUrl: (page: Page) => Promise<string | null>,
-  scale: number = 0.4,
+  scaleOrOptions: number | PrintToPdfOptions = 0.4,
   pageNumber?: number
 ): Promise<Buffer | null> {
+  // Handle both legacy (scale, pageNumber) and new (options object) signatures
+  let options: PrintToPdfOptions;
+  if (typeof scaleOrOptions === "number") {
+    options = {
+      scale: scaleOrOptions,
+      pageNumber: pageNumber,
+      addLinks: pageNumber === undefined, // Only add links for full PDF by default
+      showLinkBorders: false,
+    };
+  } else {
+    options = {
+      scale: scaleOrOptions.scale ?? 0.4,
+      pageNumber: scaleOrOptions.pageNumber,
+      addLinks: scaleOrOptions.addLinks ?? (scaleOrOptions.pageNumber === undefined),
+      showLinkBorders: scaleOrOptions.showLinkBorders ?? false,
+    };
+  }
+
+  const { scale = 0.4, addLinks, showLinkBorders } = options;
+  const targetPageNumber = options.pageNumber;
   try {
     // Get the iframe URL from the main page
     const iframeUrl = await getIframeUrl(page);
@@ -50,8 +86,8 @@ export async function printScholarVoxPageToPDF(
       });
 
       // If a specific page number is requested, scroll to it and isolate it
-      if (pageNumber !== undefined) {
-        console.log(`   🎯 Isolating page ${pageNumber}...`);
+      if (targetPageNumber !== undefined) {
+        console.log(`   🎯 Isolating page ${targetPageNumber}...`);
 
         // Scroll to the target page to trigger lazy loading
         await iframePage.evaluate(targetPage => {
@@ -65,7 +101,7 @@ export async function printScholarVoxPageToPDF(
           if (targetElement) {
             targetElement.scrollIntoView({ behavior: "auto", block: "start" });
           }
-        }, pageNumber);
+        }, targetPageNumber);
 
         // Wait for lazy-loaded content
         await iframePage.waitForTimeout(3000);
@@ -92,7 +128,7 @@ export async function printScholarVoxPageToPDF(
           // Hide sidebar
           const sidebar = document.getElementById("sidebar");
           if (sidebar) sidebar.style.display = "none";
-        }, pageNumber);
+        }, targetPageNumber);
 
         await iframePage.waitForTimeout(500);
       }
@@ -502,6 +538,24 @@ export async function printScholarVoxPageToPDF(
       });
 
       console.log(`   ✅ Generated PDF from HTML page!`);
+
+      // Extract and add links if enabled (only for full PDF, not single-page)
+      if (addLinks && targetPageNumber === undefined) {
+        console.log(`   🔗 Extracting links from HTML...`);
+        
+        const links = await extractLinksFromPage(iframePage);
+        console.log(`   📎 Found ${links.length} links`);
+
+        if (links.length > 0) {
+          console.log(`   🔧 Adding link annotations to PDF...`);
+          const pdfDoc = await PDFDocument.load(pdfBuffer);
+          await addLinksToPdf(pdfDoc, links, showLinkBorders);
+          const annotatedPdfBytes = await pdfDoc.save();
+          console.log(`   ✅ Added ${links.length} clickable links to PDF!`);
+          return Buffer.from(annotatedPdfBytes);
+        }
+      }
+
       return Buffer.from(pdfBuffer);
     } finally {
       await iframePage.close();
@@ -510,4 +564,92 @@ export async function printScholarVoxPageToPDF(
     console.error("Print to PDF failed:", err);
     return null;
   }
+}
+
+/**
+ * Extract link data from the HTML page
+ * Links are structured as: <a class="l" href="..."><div style="position:absolute;left:X;bottom:Y;width:W;height:H"></div></a>
+ * The <a> has no dimensions, the child <div> defines the clickable area
+ */
+async function extractLinksFromPage(page: Page): Promise<LinkData[]> {
+  return await page.evaluate(() => {
+    const links: Array<{
+      pageIndex: number;
+      rect: { x: number; y: number; width: number; height: number };
+      pageBounds: { width: number; height: number };
+      href: string;
+      hashTargetPageIndex?: number;
+    }> = [];
+
+    // Build a map of page ID (hex) -> 0-based page index
+    const pageIdToIndex: Record<string, number> = {};
+    const pageContainers = document.querySelectorAll('.pf[data-page-no]');
+    pageContainers.forEach((el, index) => {
+      const pageNo = el.getAttribute('data-page-no');
+      if (pageNo) {
+        pageIdToIndex[pageNo] = index;
+        // Also map with 'pf' prefix for easier lookup
+        pageIdToIndex[`pf${pageNo}`] = index;
+      }
+    });
+
+    // Find all link elements
+    const linkElements = document.querySelectorAll('a.l');
+    
+    linkElements.forEach(anchor => {
+      const href = anchor.getAttribute('href');
+      if (!href) return;
+
+      // Get the child div that defines the clickable area
+      const childDiv = anchor.querySelector('div.d') as HTMLElement;
+      if (!childDiv) return;
+
+      // Parse position from inline style
+      const style = childDiv.style;
+      const left = parseFloat(style.left) || 0;
+      const bottom = parseFloat(style.bottom) || 0;
+      const width = parseFloat(style.width) || 0;
+      const height = parseFloat(style.height) || 0;
+
+      if (width === 0 || height === 0) return;
+
+      // Find the parent page container to determine page index
+      const pageContainer = anchor.closest('.pf[data-page-no]');
+      if (!pageContainer) return;
+
+      const pageNo = pageContainer.getAttribute('data-page-no');
+      if (!pageNo) return;
+
+      const pageIndex = pageIdToIndex[pageNo];
+      if (pageIndex === undefined) return;
+
+      // Get page dimensions from the container
+      const pageRect = pageContainer.getBoundingClientRect();
+      const pageBounds = {
+        width: pageRect.width,
+        height: pageRect.height,
+      };
+
+      // Determine if this is an internal link
+      let hashTargetPageIndex: number | undefined;
+      if (href.includes('#pf')) {
+        // Extract the page ID from the hash
+        const hashMatch = href.match(/#(pf[0-9a-f]+)/i);
+        if (hashMatch) {
+          const targetId = hashMatch[1];
+          hashTargetPageIndex = pageIdToIndex[targetId];
+        }
+      }
+
+      links.push({
+        pageIndex,
+        rect: { x: left, y: bottom, width, height },
+        pageBounds,
+        href,
+        hashTargetPageIndex,
+      });
+    });
+
+    return links;
+  });
 }
