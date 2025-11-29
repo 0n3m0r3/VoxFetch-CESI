@@ -18,6 +18,9 @@ npm install -g voxfetch-cesi
 # Install browser (required once)
 npx playwright install chromium
 
+# Linux only: Install system dependencies (requires sudo)
+npx playwright install-deps chromium
+
 # Run from anywhere
 voxfetch
 ```
@@ -86,10 +89,13 @@ npm install
 npm run playwright:install
 ```
 
-**Linux users:** You may need to install browser dependencies:
+**Linux users:** You **must** install browser system dependencies:
 ```bash
+# This requires sudo and installs required system libraries
 npx playwright install-deps chromium
 ```
+
+Without this step, you'll get errors like `cannot open shared object file: libnspr4.so`.
 
 ---
 
