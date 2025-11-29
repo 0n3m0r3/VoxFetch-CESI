@@ -57,7 +57,6 @@ ScholarVox only lets you read books online. This tool downloads them as proper P
 4. Prints each page to PDF using the browser
 5. Saves everything as a single PDF file
 
----
 
 ## 📦 Installation
 
@@ -97,8 +96,6 @@ npx playwright install-deps chromium
 ```
 
 Without this step, you'll get errors like `cannot open shared object file: libnspr4.so`.
-
----
 
 ## 🚀 Usage
 
@@ -145,8 +142,6 @@ To delete saved credentials:
 # Linux: Use your system's credential manager
 ```
 
----
-
 ## ⚠️ Troubleshooting
 
 **"Book ID not found"**
@@ -166,17 +161,11 @@ To delete saved credentials:
 - Try running it again if the error persists, 
 - Try running with `npm run download:debug` to see what's happening
 
----
-
 ## 🚧 Known Limitations
 
-- **CESI only:** Currently only works with ScholarVox CESI (`cesi.scholarvox.com`). Other institutions may have different authentication flows.
+- **CESI only:** Currently only works with ScholarVox CESI (`cesi.scholarvox.com`). 
 - **One book at a time:** The tool downloads one book per run. Batch downloads are not yet supported.
-- **No bookmark preservation:** Bookmarks/table of contents from the original book are not preserved in the PDF.
-- **Page size:** All pages are exported with the same size, which may not match the original book format exactly.
 - **Network dependent:** Requires a stable internet connection throughout the download process.
-
----
 
 ## ❓ FAQ
 
@@ -189,7 +178,7 @@ This tool is designed for **personal use only** - to download books you already 
 
 ### Does it work for other schools?
 
-Currently, VoxFetch-CESI is specifically designed for CESI's ScholarVox portal. Other institutions may have different authentication systems. Feel free to open an issue or PR if you'd like to add support for your school!
+No. Currently, VoxFetch-CESI is specifically designed for CESI's ScholarVox portal. Other institutions may have different authentication systems. 
 
 ### Why does it ask for my credentials again?
 
@@ -206,7 +195,7 @@ The tool needs to:
 3. Generate a PDF for each page
 4. Merge all pages at the end
 
-This ensures maximum quality but takes time. A 300-page book typically takes 5-10 minutes.
+This ensures maximum quality but takes time. A 300-page book typically takes 1-2 minutes.
 
 ### The tool crashes or hangs, what should I do?
 
@@ -214,8 +203,6 @@ This ensures maximum quality but takes time. A 300-page book typically takes 5-1
 2. Check your internet connection
 3. Try with a different book to isolate the issue
 4. Open an issue with the debug logs
-
----
 
 ## 🔒 Security Considerations
 
@@ -236,15 +223,6 @@ This ensures maximum quality but takes time. A 300-page book typically takes 5-1
 - ✅ **No external servers:** The tool only communicates with ScholarVox
 - ✅ **Open source:** You can audit the entire codebase
 
-### Recommendations
-
-We encourage you to:
-1. **Review the code** before running it, especially `src/utils/credentials.ts`
-2. **Check the network traffic** if you're concerned (the tool only connects to ScholarVox)
-3. **Use a separate password** for ScholarVox if possible (good security practice in general)
-
----
-
 ## 🛠️ Development
 
 ```bash
@@ -257,8 +235,6 @@ npm run build
 # Format code
 npm run format
 ```
-
----
 
 ## ⚖️ Legal Disclaimer
 
@@ -276,13 +252,9 @@ npm run format
 
 This tool is provided "as is" for educational purposes. The authors are not responsible for any misuse.
 
----
-
 ## 📄 License
 
 MIT License - See LICENSE file for details
-
----
 
 ## 🗺️ Roadmap
 
@@ -290,15 +262,12 @@ Here are some features we're considering for future versions:
 
 - [ ] **Batch download mode:** Download multiple books from a list
 - [ ] **CLI options:** Command-line arguments for book ID, output path, etc.
-- [ ] **Progress bar:** Visual progress indicator during download
+- [x] **Progress bar:** Visual progress indicator during download
 - [ ] **Better error messages:** More helpful error descriptions and recovery suggestions
 - [ ] **Resume support:** Ability to resume interrupted downloads
-- [ ] **Table of contents:** Preserve bookmarks and chapter navigation in PDFs
-- [ ] **Multi-institution support:** Add support for other schools using ScholarVox
+- [x] **Table of contents:** Preserve bookmarks and chapter navigation in PDFs
 
 Have a feature idea? [Open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues) or check out [CONTRIBUTING.md](CONTRIBUTING.md) to submit a PR!
-
----
 
 ## 🤝 Contributing
 
@@ -306,7 +275,5 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 - Setting up the development environment
 - Code style and formatting rules
 - How to submit a pull request
-
----
 
 **Made with ❤️ for CESI students**
