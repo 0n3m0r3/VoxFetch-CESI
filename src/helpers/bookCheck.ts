@@ -54,7 +54,9 @@ export async function checkBookStatus(
 
   // Check for "available soon" status
   const pageContent = await page.content();
-  if (pageContent.toLowerCase().includes("cet ouvrage sera bientôt disponible")) {
+  if (
+    pageContent.toLowerCase().includes("cet ouvrage sera bientôt disponible")
+  ) {
     return "AVAILABLE_SOON";
   }
 

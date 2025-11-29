@@ -3,10 +3,26 @@
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
+[![npm version](https://img.shields.io/npm/v/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
 
 Download ScholarVox books as PDFs - Made for CESI Students 🎓
 
 ## 📖 Quick Start
+
+### Option 1: Global Installation (Recommended)
+
+```bash
+# Install globally
+npm install -g voxfetch-cesi
+
+# Install browser (required once)
+npx playwright install chromium
+
+# Run from anywhere
+voxfetch
+```
+
+### Option 2: Local Installation
 
 1. **Install dependencies:**
    ```bash
@@ -40,6 +56,21 @@ ScholarVox only lets you read books online. This tool downloads them as proper P
 ---
 
 ## 📦 Installation
+
+### Global Installation (CLI)
+
+```bash
+# Install globally via npm
+npm install -g voxfetch-cesi
+
+# Install browser (required)
+npx playwright install chromium
+
+# Now you can run from anywhere
+voxfetch
+```
+
+### Local Installation (Development)
 
 **Requirements:** Node.js 18+ ([Download](https://nodejs.org/))
 
@@ -130,6 +161,83 @@ To delete saved credentials:
 
 ---
 
+## 🚧 Known Limitations
+
+- **CESI only:** Currently only works with ScholarVox CESI (`cesi.scholarvox.com`). Other institutions may have different authentication flows.
+- **One book at a time:** The tool downloads one book per run. Batch downloads are not yet supported.
+- **No bookmark preservation:** Bookmarks/table of contents from the original book are not preserved in the PDF.
+- **Page size:** All pages are exported with the same size, which may not match the original book format exactly.
+- **Network dependent:** Requires a stable internet connection throughout the download process.
+
+---
+
+## ❓ FAQ
+
+### Is this legal?
+
+This tool is designed for **personal use only** - to download books you already have legitimate access to through your institution. It's similar to printing pages for personal study. However:
+- Redistributing downloaded books is **illegal**
+- Using this to bypass access restrictions is **against ToS**
+- Always check your institution's and ScholarVox's terms of service
+
+### Does it work for other schools?
+
+Currently, VoxFetch-CESI is specifically designed for CESI's ScholarVox portal. Other institutions may have different authentication systems. Feel free to open an issue or PR if you'd like to add support for your school!
+
+### Why does it ask for my credentials again?
+
+This can happen if:
+- You chose not to save your credentials previously
+- Your saved credentials were deleted from the system's credential manager
+- There was an authentication error and credentials were invalidated
+
+### Why is the download slow?
+
+The tool needs to:
+1. Navigate to each page individually
+2. Wait for fonts and content to fully load
+3. Generate a PDF for each page
+4. Merge all pages at the end
+
+This ensures maximum quality but takes time. A 300-page book typically takes 5-10 minutes.
+
+### The tool crashes or hangs, what should I do?
+
+1. Run with debug mode: `npm run download:debug`
+2. Check your internet connection
+3. Try with a different book to isolate the issue
+4. Open an issue with the debug logs
+
+---
+
+## 🔒 Security Considerations
+
+### Credential Storage
+
+**Your credentials are never stored in plain text.** They are managed by your operating system's native credential manager via the `@napi-rs/keyring` library:
+
+| OS | Storage Location | Encryption |
+|---|---|---|
+| **Windows** | Windows Credential Manager | DPAPI encryption |
+| **macOS** | Keychain | Keychain encryption |
+| **Linux** | Secret Service (GNOME Keyring, KWallet) | System encryption |
+
+### Privacy
+
+- ✅ **100% local:** All processing happens on your machine
+- ✅ **No telemetry:** We don't collect any data
+- ✅ **No external servers:** The tool only communicates with ScholarVox
+- ✅ **Open source:** You can audit the entire codebase
+
+### Recommendations
+
+We encourage you to:
+1. **Review the code** before running it, especially `src/utils/credentials.ts`
+2. **Check the network traffic** if you're concerned (the tool only connects to ScholarVox)
+3. **Use a separate password** for ScholarVox if possible (good security practice in general)
+
+---
+
 ## 🛠️ Development
 
 ```bash
@@ -166,6 +274,31 @@ This tool is provided "as is" for educational purposes. The authors are not resp
 ## 📄 License
 
 MIT License - See LICENSE file for details
+
+---
+
+## 🗺️ Roadmap
+
+Here are some features we're considering for future versions:
+
+- [ ] **Batch download mode:** Download multiple books from a list
+- [ ] **CLI options:** Command-line arguments for book ID, output path, etc.
+- [ ] **Progress bar:** Visual progress indicator during download
+- [ ] **Better error messages:** More helpful error descriptions and recovery suggestions
+- [ ] **Resume support:** Ability to resume interrupted downloads
+- [ ] **Table of contents:** Preserve bookmarks and chapter navigation in PDFs
+- [ ] **Multi-institution support:** Add support for other schools using ScholarVox
+
+Have a feature idea? [Open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues) or check out [CONTRIBUTING.md](CONTRIBUTING.md) to submit a PR!
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
+- Setting up the development environment
+- Code style and formatting rules
+- How to submit a pull request
 
 ---
 

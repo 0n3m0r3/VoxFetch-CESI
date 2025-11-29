@@ -43,7 +43,8 @@ export async function printScholarVoxPageToPDF(
     options = {
       scale: scaleOrOptions.scale ?? 0.4,
       pageNumber: scaleOrOptions.pageNumber,
-      addLinks: scaleOrOptions.addLinks ?? (scaleOrOptions.pageNumber === undefined),
+      addLinks:
+        scaleOrOptions.addLinks ?? scaleOrOptions.pageNumber === undefined,
       showLinkBorders: scaleOrOptions.showLinkBorders ?? false,
     };
   }
@@ -542,7 +543,7 @@ export async function printScholarVoxPageToPDF(
       // Extract and add links if enabled (only for full PDF, not single-page)
       if (addLinks && targetPageNumber === undefined) {
         console.log(`   🔗 Extracting links from HTML...`);
-        
+
         const links = await extractLinksFromPage(iframePage);
         console.log(`   📎 Found ${links.length} links`);
 
@@ -583,9 +584,9 @@ async function extractLinksFromPage(page: Page): Promise<LinkData[]> {
 
     // Build a map of page ID (hex) -> 0-based page index
     const pageIdToIndex: Record<string, number> = {};
-    const pageContainers = document.querySelectorAll('.pf[data-page-no]');
+    const pageContainers = document.querySelectorAll(".pf[data-page-no]");
     pageContainers.forEach((el, index) => {
-      const pageNo = el.getAttribute('data-page-no');
+      const pageNo = el.getAttribute("data-page-no");
       if (pageNo) {
         pageIdToIndex[pageNo] = index;
         // Also map with 'pf' prefix for easier lookup
@@ -594,14 +595,14 @@ async function extractLinksFromPage(page: Page): Promise<LinkData[]> {
     });
 
     // Find all link elements
-    const linkElements = document.querySelectorAll('a.l');
-    
+    const linkElements = document.querySelectorAll("a.l");
+
     linkElements.forEach(anchor => {
-      const href = anchor.getAttribute('href');
+      const href = anchor.getAttribute("href");
       if (!href) return;
 
       // Get the child div that defines the clickable area
-      const childDiv = anchor.querySelector('div.d') as HTMLElement;
+      const childDiv = anchor.querySelector("div.d") as HTMLElement;
       if (!childDiv) return;
 
       // Parse position from inline style
@@ -614,10 +615,10 @@ async function extractLinksFromPage(page: Page): Promise<LinkData[]> {
       if (width === 0 || height === 0) return;
 
       // Find the parent page container to determine page index
-      const pageContainer = anchor.closest('.pf[data-page-no]');
+      const pageContainer = anchor.closest(".pf[data-page-no]");
       if (!pageContainer) return;
 
-      const pageNo = pageContainer.getAttribute('data-page-no');
+      const pageNo = pageContainer.getAttribute("data-page-no");
       if (!pageNo) return;
 
       const pageIndex = pageIdToIndex[pageNo];
@@ -632,7 +633,7 @@ async function extractLinksFromPage(page: Page): Promise<LinkData[]> {
 
       // Determine if this is an internal link
       let hashTargetPageIndex: number | undefined;
-      if (href.includes('#pf')) {
+      if (href.includes("#pf")) {
         // Extract the page ID from the hash
         const hashMatch = href.match(/#(pf[0-9a-f]+)/i);
         if (hashMatch) {

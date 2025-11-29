@@ -32,7 +32,7 @@ export async function getBookTitle(
 
     return null;
   });
-  
+
   if (titleText && titleText.length > 0) {
     // Sanitize the title for use as a filename
     return titleText
@@ -42,7 +42,7 @@ export async function getBookTitle(
       .replace(/^-|-$/g, "") // Remove leading/trailing hyphens
       .substring(0, 100); // Limit length
   }
-  
+
   return null;
 }
 

@@ -36,7 +36,7 @@ export async function addLinksToPdf(
   showBorders: boolean = false
 ): Promise<void> {
   const pages = pdfDoc.getPages();
-  
+
   // Debug: log first link's coordinate transformation
   let debugLogged = false;
 
@@ -63,10 +63,12 @@ export async function addLinksToPdf(
       width: link.rect.width * scaleX,
       height: link.rect.height * scaleY,
     };
-    
+
     // Debug log for first link (only when showBorders/debug is enabled)
     if (!debugLogged && showBorders) {
-      console.log(`   [Link Debug] Page bounds: ${link.pageBounds.width}x${link.pageBounds.height}px -> ${pdfWidth.toFixed(0)}x${pdfHeight.toFixed(0)}pt (scale: ${scaleX.toFixed(3)})`);
+      console.log(
+        `   [Link Debug] Page bounds: ${link.pageBounds.width}x${link.pageBounds.height}px -> ${pdfWidth.toFixed(0)}x${pdfHeight.toFixed(0)}pt (scale: ${scaleX.toFixed(3)})`
+      );
       debugLogged = true;
     }
 

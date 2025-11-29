@@ -3,10 +3,32 @@
   "version": "1.0.0",
   "description": "Download ScholarVox books as PDFs - Made for CESI students",
   "license": "MIT",
-  "private": true,
   "type": "module",
+  "author": "0n3m0r3",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0n3m0r3/VoxFetch-CESI.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0n3m0r3/VoxFetch-CESI/issues"
+  },
+  "homepage": "https://github.com/0n3m0r3/VoxFetch-CESI#readme",
+  "keywords": [
+    "scholarvox",
+    "cesi",
+    "pdf",
+    "ebook",
+    "downloader",
+    "cli"
+  ],
+  "files": [
+    "dist",
+    "bin",
+    "README.md",
+    "LICENSE"
+  ],
   "bin": {
-    "voxfetch": "dist/index.js"
+    "voxfetch": "./bin/voxfetch.js"
   },
   "scripts": {
     "build": "tsc -p .",
