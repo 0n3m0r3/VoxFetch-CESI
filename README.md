@@ -1,9 +1,10 @@
 # VoxFetch-CESI
 
+[![npm version](https://img.shields.io/npm/v/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
+[![npm downloads](https://img.shields.io/npm/dm/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
 [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
-[![npm version](https://img.shields.io/npm/v/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
 
 Download ScholarVox books as PDFs - Made for CESI Students 🎓
 
