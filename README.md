@@ -6,7 +6,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
 
-Download ScholarVox books as PDFs — for CESI students and university students 🎓
+Download ScholarVox books as PDFs — for anyone with institutional access 🎓
+
+> **v2:** Access is no longer limited to CESI students. VoxFetch now supports a wide range of institutions. If your school isn't listed or doesn't work, please [open an issue or submit a PR](https://github.com/0n3m0r3/VoxFetch-CESI/issues) — contributions are very welcome!
 
 ## 📖 Quick Start
 
@@ -51,7 +53,9 @@ ScholarVox only lets you read books online. This tool downloads them as proper P
 
 It supports two authentication paths:
 - **CESI students** — direct SAML login via `univ.scholarvox.com/saml-sp/viacesi`
-- **University students** — SSO login via the [Renater federation](https://www.renater.fr/) (the French academic identity federation), supporting 20+ institutions
+- **Other institutions** — SSO login via the [Renater federation](https://www.renater.fr/) (the French academic identity federation), supporting a growing number of institutions
+
+> Since I can't test every school, the institution list may be incomplete. If yours is missing or broken, please [open an issue or PR](https://github.com/0n3m0r3/VoxFetch-CESI/issues)!
 
 ## ⚙️ How It Works
 
@@ -123,20 +127,20 @@ voxfetch --auth cesi
 ```
 You will be asked for your CESI email and password.
 
-#### University SSO
+#### University / Institution SSO
 
 Select option `(2)` at the login method prompt, or pass `--auth renater`:
 ```bash
 voxfetch --auth renater
 ```
-You will be asked to pick your institution from the list and enter your university username and password.
+You will be asked to pick your institution from the list and enter your username and password.
 
 To skip both prompts entirely:
 ```bash
 voxfetch --auth renater --institution univ-rouen
 ```
 
-### Supported Institutions (University SSO)
+### Supported Institutions (SSO)
 
 | Key | Institution |
 |---|---|
@@ -162,7 +166,7 @@ voxfetch --auth renater --institution univ-rouen
 | `univ-strasbourg` | Université de Strasbourg |
 | `univ-lorraine` | Université de Lorraine |
 
-To request support for another institution, open an issue or add an entry to `src/config/institutions.ts`. Entity IDs can be looked up at `https://discovery.renater.fr/renater/api.php?search=<name>`.
+> **Don't see your institution?** Since I can't test every school, the list may be incomplete. Please [open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues) to request support, or submit a PR and add an entry to `src/config/institutions.ts`. Entity IDs can be looked up at `https://discovery.renater.fr/renater/api.php?search=<name>`.
 
 ### Finding the Book ID
 
@@ -229,7 +233,7 @@ To delete saved credentials, run the tool and choose `n` when asked to use saved
 
 **PDF is blank or incomplete**
 - Some books may have loading issues
-- Try running it again if the error persists, 
+- Try running it again if the error persists
 - Try running with `npm run download:debug` to see what's happening
 
 ## 🚧 Known Limitations
@@ -246,9 +250,15 @@ This tool is designed for **personal use only** - to download books you already 
 - Using this to bypass access restrictions is **against ToS**
 - Always check your institution's and ScholarVox's terms of service
 
-### Does it work for other schools?
+### Does it work for my school?
 
-Yes, for universities connected to ScholarVox via the **Renater** federation (most French public universities). Select login method `(2)` at the prompt. 20+ universities are supported out of the box — see the institution list above. For anything not in the list, add an entry to `src/config/institutions.ts` (entity IDs are at `https://discovery.renater.fr/renater/api.php?search=<name>`).
+If your school uses ScholarVox and is part of the **Renater** federation (most French public universities and many engineering schools), it very likely works. Select login method `(2)` at the prompt and pick your institution.
+
+I can't test every institution myself, so the built-in list may be incomplete. If your school is missing or the login doesn't work:
+- **[Open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues)** describing your school and the problem
+- **[Submit a PR](https://github.com/0n3m0r3/VoxFetch-CESI/pulls)** adding your institution to `src/config/institutions.ts` (entity IDs are at `https://discovery.renater.fr/renater/api.php?search=<name>`)
+
+All contributions are welcome!
 
 ### Why does it ask for my credentials again?
 
@@ -336,8 +346,8 @@ Here are some features we're considering for future versions:
 - [ ] **Better error messages:** More helpful error descriptions and recovery suggestions
 - [ ] **Resume support:** Ability to resume interrupted downloads
 - [x] **Table of contents:** Preserve bookmarks and chapter navigation in PDFs
-- [x] **University SSO:** Support for university students via the Renater federation (20+ institutions)
-- [ ] **More institutions:** Expand the SSO institution registry further
+- [x] **University SSO:** Support for any institution via the Renater federation
+- [ ] **More institutions:** Expand the SSO institution registry — [open an issue or PR](https://github.com/0n3m0r3/VoxFetch-CESI/issues) if yours is missing!
 
 Have a feature idea? [Open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues) or check out [CONTRIBUTING.md](CONTRIBUTING.md) to submit a PR!
 
@@ -348,4 +358,4 @@ Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md)
 - Code style and formatting rules
 - How to submit a pull request
 
-**Made with ❤️ for CESI students**
+**Made with ❤️ for ScholarVox users (and initially CESI students)**
