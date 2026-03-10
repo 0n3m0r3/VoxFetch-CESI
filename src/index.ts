@@ -9,7 +9,10 @@ import { getBookTitle } from "./helpers/bookMeta.js";
 import { getCredentials, getRenaterCredentials } from "./utils/credentials.js";
 import { loginCESI } from "./utils/auth.js";
 import { loginRenater } from "./utils/authRenater.js";
-import { SUPPORTED_INSTITUTIONS, listInstitutions } from "./config/institutions.js";
+import {
+  SUPPORTED_INSTITUTIONS,
+  listInstitutions,
+} from "./config/institutions.js";
 import { addLinksToPdf, LinkData } from "./utils/pdfLinks.js";
 
 type AuthConfig =
@@ -145,9 +148,17 @@ async function downloadBook(
       log(`Email: ${authConfig.email}`);
       await loginCESI(page, authConfig.email, authConfig.password, DEBUG);
     } else {
-      loginSpinner.start(`Logging in via SSO (${SUPPORTED_INSTITUTIONS[authConfig.institutionKey]?.label ?? authConfig.institutionKey})...`);
+      loginSpinner.start(
+        `Logging in via SSO (${SUPPORTED_INSTITUTIONS[authConfig.institutionKey]?.label ?? authConfig.institutionKey})...`
+      );
       log(`Username: ${authConfig.username}`);
-      await loginRenater(page, authConfig.entityId, authConfig.username, authConfig.password, DEBUG);
+      await loginRenater(
+        page,
+        authConfig.entityId,
+        authConfig.username,
+        authConfig.password,
+        DEBUG
+      );
     }
     loginSpinner.stop("Login successful!");
 
@@ -461,9 +472,11 @@ async function main() {
 
   // ---- Auth method selection ----
   const authFlagIdx = process.argv.indexOf("--auth");
-  const authFlag = authFlagIdx !== -1 ? process.argv[authFlagIdx + 1] : undefined;
+  const authFlag =
+    authFlagIdx !== -1 ? process.argv[authFlagIdx + 1] : undefined;
   const instFlagIdx = process.argv.indexOf("--institution");
-  const instFlag = instFlagIdx !== -1 ? process.argv[instFlagIdx + 1] : undefined;
+  const instFlag =
+    instFlagIdx !== -1 ? process.argv[instFlagIdx + 1] : undefined;
 
   let authMethod: "cesi" | "renater";
   if (authFlag === "cesi") {
@@ -482,7 +495,11 @@ async function main() {
 
   if (authMethod === "cesi") {
     const creds = await getCredentials();
-    authConfig = { method: "cesi", email: creds.email, password: creds.password };
+    authConfig = {
+      method: "cesi",
+      email: creds.email,
+      password: creds.password,
+    };
   } else {
     const institutions = listInstitutions();
     let institutionKey: string;
@@ -535,9 +552,7 @@ main().catch(err => {
  * The page containers have CSS transforms applied, so we need to get the
  * untransformed dimensions from the .pf element's style attribute.
  */
-async function extractLinksFromPage(
-  page: import("playwright").Page
-): Promise<{
+async function extractLinksFromPage(page: import("playwright").Page): Promise<{
   links: LinkData[];
   debug?: {
     cssW0: number;

@@ -197,7 +197,10 @@ export async function saveRenaterCredentials(
   password: string
 ): Promise<void> {
   try {
-    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    const entry = new Entry(
+      renaterService(institutionKey),
+      RENATER_ACCOUNT_KEY
+    );
     entry.setPassword(JSON.stringify({ username, password }));
     console.log("Credentials saved securely to system keychain.");
   } catch (error) {
@@ -210,7 +213,10 @@ export async function loadRenaterCredentials(
   institutionKey: string
 ): Promise<RenaterCredentials | null> {
   try {
-    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    const entry = new Entry(
+      renaterService(institutionKey),
+      RENATER_ACCOUNT_KEY
+    );
     const data = entry.getPassword();
     if (!data) return null;
     const parsed = JSON.parse(data);
@@ -224,7 +230,10 @@ export async function deleteRenaterCredentials(
   institutionKey: string
 ): Promise<void> {
   try {
-    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    const entry = new Entry(
+      renaterService(institutionKey),
+      RENATER_ACCOUNT_KEY
+    );
     entry.deletePassword();
     console.log("Credentials deleted from system keychain.");
   } catch {

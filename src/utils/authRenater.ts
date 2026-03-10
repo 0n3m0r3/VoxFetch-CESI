@@ -105,11 +105,13 @@ export async function loginRenater(
 
     const [outcome] = await Promise.all([
       Promise.race([
-        page.waitForURL(/scholarvox\.com/, { timeout: 45000 }).then(() => "ok" as const),
+        page
+          .waitForURL(/scholarvox\.com/, { timeout: 45000 })
+          .then(() => "ok" as const),
         page
           .waitForSelector(CAS_ERROR_SEL, { state: "visible", timeout: 45000 })
           .then(async el => {
-            const msg = (await el.textContent() ?? "").trim();
+            const msg = ((await el.textContent()) ?? "").trim();
             return `bad-credentials:${msg.substring(0, 120)}` as const;
           }),
       ]),
