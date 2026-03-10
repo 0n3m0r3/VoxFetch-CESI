@@ -177,3 +177,95 @@ export async function getCredentials(
   // Priority 3: Prompt user for new credentials
   return await promptCredentials();
 }
+
+// ---- Renater / university credentials ----
+
+interface RenaterCredentials {
+  username: string;
+  password: string;
+}
+
+function renaterService(institutionKey: string): string {
+  return `voxfetch-${institutionKey}`;
+}
+
+const RENATER_ACCOUNT_KEY = "renater-credentials";
+
+export async function saveRenaterCredentials(
+  institutionKey: string,
+  username: string,
+  password: string
+): Promise<void> {
+  try {
+    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    entry.setPassword(JSON.stringify({ username, password }));
+    console.log("Credentials saved securely to system keychain.");
+  } catch (error) {
+    console.error("Failed to save credentials:", error);
+    throw error;
+  }
+}
+
+export async function loadRenaterCredentials(
+  institutionKey: string
+): Promise<RenaterCredentials | null> {
+  try {
+    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    const data = entry.getPassword();
+    if (!data) return null;
+    const parsed = JSON.parse(data);
+    return { username: parsed.username, password: parsed.password };
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteRenaterCredentials(
+  institutionKey: string
+): Promise<void> {
+  try {
+    const entry = new Entry(renaterService(institutionKey), RENATER_ACCOUNT_KEY);
+    entry.deletePassword();
+    console.log("Credentials deleted from system keychain.");
+  } catch {
+    // Not found — nothing to do
+  }
+}
+
+export async function getRenaterCredentials(
+  institutionKey: string,
+  usernameArg?: string,
+  passwordArg?: string
+): Promise<RenaterCredentials> {
+  // Priority 1: CLI arguments
+  if (usernameArg && passwordArg) {
+    return { username: usernameArg, password: passwordArg };
+  }
+
+  // Priority 2: Keychain
+  const stored = await loadRenaterCredentials(institutionKey);
+  if (stored) {
+    console.log(`Found saved credentials for: ${stored.username}`);
+    const use = await askQuestion("Use saved credentials? (y/n): ");
+
+    if (use.toLowerCase() === "y" || use.toLowerCase() === "yes") {
+      return stored;
+    }
+
+    const deleteOld = await askQuestion("Delete saved credentials? (y/n): ");
+    if (deleteOld.toLowerCase() === "y" || deleteOld.toLowerCase() === "yes") {
+      await deleteRenaterCredentials(institutionKey);
+    }
+  }
+
+  // Priority 3: Interactive prompt
+  const username = await askQuestion("University username: ");
+  const password = await askQuestion("Password: ", true);
+
+  const save = await askQuestion("Save credentials for future use? (y/n): ");
+  if (save.toLowerCase() === "y" || save.toLowerCase() === "yes") {
+    await saveRenaterCredentials(institutionKey, username, password);
+  }
+
+  return { username, password };
+}

@@ -1,4 +1,4 @@
-# VoxFetch-CESI
+# VoxFetch
 
 [![npm version](https://img.shields.io/npm/v/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
 [![npm downloads](https://img.shields.io/npm/dm/voxfetch-cesi.svg?style=flat-square)](https://www.npmjs.com/package/voxfetch-cesi)
@@ -6,7 +6,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen.svg?style=flat-square)](https://nodejs.org/)
 
-Download ScholarVox books as PDFs - Made for CESI Students 🎓
+Download ScholarVox books as PDFs — for CESI students and university students 🎓
 
 ## 📖 Quick Start
 
@@ -41,7 +41,7 @@ voxfetch
 
 3. **Enter the book ID** (found in the URL: `scholarvox.com/reader/docid/12345678`)
 
-4. **Login with your CESI credentials** when prompted
+4. **Choose your login method** when prompted (CESI or university via Renater)
 
 That's it! Your PDF will be saved in the `output/` folder.
 
@@ -49,9 +49,13 @@ That's it! Your PDF will be saved in the `output/` folder.
 
 ScholarVox only lets you read books online. This tool downloads them as proper PDF files for offline reading with selectable text and preserved formatting.
 
+It supports two authentication paths:
+- **CESI students** — direct SAML login via `univ.scholarvox.com/saml-sp/viacesi`
+- **University students** — SSO login via the [Renater federation](https://www.renater.fr/) (the French academic identity federation), supporting 20+ institutions
+
 ## ⚙️ How It Works
 
-1. Logs in with your CESI credentials
+1. Logs in with your institutional credentials (CESI or university via Renater)
 2. Navigates to each page of the book
 3. Waits for fonts to load properly
 4. Prints each page to PDF using the browser
@@ -105,8 +109,60 @@ npm run download
 
 The tool will guide you through:
 - Entering the book ID
-- Logging in with your CESI credentials
+- Choosing your login method
+- Logging in with your credentials
 - Optionally saving your credentials for future use
+
+### Login Methods
+
+#### CESI (default)
+
+Select option `(1)` at the login method prompt, or pass `--auth cesi`:
+```bash
+voxfetch --auth cesi
+```
+You will be asked for your CESI email and password.
+
+#### University SSO
+
+Select option `(2)` at the login method prompt, or pass `--auth renater`:
+```bash
+voxfetch --auth renater
+```
+You will be asked to pick your institution from the list and enter your university username and password.
+
+To skip both prompts entirely:
+```bash
+voxfetch --auth renater --institution univ-rouen
+```
+
+### Supported Institutions (University SSO)
+
+| Key | Institution |
+|---|---|
+| `univ-lille` | Université de Lille |
+| `univ-rouen` | Université de Rouen Normandie |
+| `univ-caen` | Université de Caen Normandie |
+| `univ-rennes` | Université de Rennes |
+| `univ-rennes2` | Université Rennes 2 |
+| `univ-nantes` | Nantes Université |
+| `univ-angers` | Université d'Angers |
+| `univ-bordeaux` | Université de Bordeaux |
+| `univ-bordeaux-montaigne` | Université Bordeaux Montaigne |
+| `univ-poitiers` | Université de Poitiers |
+| `univ-toulouse3` | Université Paul Sabatier (Toulouse 3) |
+| `univ-toulouse-capitole` | Université Toulouse Capitole |
+| `univ-toulouse-jean-jaures` | Université Toulouse Jean Jaurès |
+| `univ-montpellier` | Université de Montpellier |
+| `univ-montpellier3` | Université Paul-Valéry Montpellier 3 |
+| `univ-grenoble` | Université Grenoble Alpes |
+| `univ-lyon1` | Université Claude Bernard Lyon 1 |
+| `univ-lyon2` | Université Lumière Lyon 2 |
+| `univ-lyon3` | Université Jean Moulin Lyon 3 |
+| `univ-strasbourg` | Université de Strasbourg |
+| `univ-lorraine` | Université de Lorraine |
+
+To request support for another institution, open an issue or add an entry to `src/config/institutions.ts`. Entity IDs can be looked up at `https://discovery.renater.fr/renater/api.php?search=<name>`.
 
 ### Finding the Book ID
 
@@ -123,6 +179,10 @@ https://univ.scholarvox.com/reader/docid/88853415/page/1
 ```bash
 # Debug mode (see detailed logs)
 npm run download:debug
+
+# Skip login method prompt
+voxfetch --auth cesi
+voxfetch --auth renater --institution univ-lille
 ```
 
 ### Saved Credentials
@@ -132,14 +192,20 @@ Credentials are stored securely in your system's credential manager:
 - **macOS:** Keychain
 - **Linux:** Secret Service
 
-To delete saved credentials:
+Each login method uses its own keychain entry:
+
+| Login method | Keychain service name |
+|---|---|
+| CESI | `voxfetch-cesi` |
+| University SSO (any institution) | `voxfetch-<institution-key>` |
+
+Examples: `voxfetch-univ-lille`, `voxfetch-univ-rouen`, `voxfetch-univ-bordeaux`, etc.
+
+To delete saved credentials, run the tool and choose `n` when asked to use saved credentials, then `y` to delete. Alternatively:
 ```bash
-# Windows: Open Credential Manager and remove "voxfetch-cesi" entry
-# Or run the tool and choose "n" when asked to use saved credentials
-
-# macOS: Open Keychain Access and search for "voxfetch-cesi"
-
-# Linux: Use your system's credential manager
+# macOS: Open Keychain Access and search for "voxfetch-cesi" or "voxfetch-univ-lille"
+# Linux: Use your system's credential manager (GNOME Keyring, KWallet, etc.)
+# Windows: Open Credential Manager and remove the relevant entry
 ```
 
 ## ⚠️ Troubleshooting
@@ -148,9 +214,14 @@ To delete saved credentials:
 - Verify the book ID from the URL
 - Ensure you have access to the book through your institution
 
-**"Login failed"**
-- Check your CESI credentials are correct
+**"Login failed" (CESI)**
+- Check your CESI email and password are correct
 - Delete saved credentials and try again
+
+**"SSO login failed" / "Renater login failed"**
+- Check your university username and password are correct
+- Confirm your institution is in the supported list above
+- If the login redirects to an unexpected page, the entity ID in `src/config/institutions.ts` may be stale — look up the correct value at `https://discovery.renater.fr/renater/api.php?search=<your+university+name>`
 
 **"No iframe found"**
 - The book may require special access
@@ -163,7 +234,6 @@ To delete saved credentials:
 
 ## 🚧 Known Limitations
 
-- **CESI only:** Currently only works with ScholarVox CESI (`cesi.scholarvox.com`). 
 - **One book at a time:** The tool downloads one book per run. Batch downloads are not yet supported.
 - **Network dependent:** Requires a stable internet connection throughout the download process.
 
@@ -178,7 +248,7 @@ This tool is designed for **personal use only** - to download books you already 
 
 ### Does it work for other schools?
 
-No. Currently, VoxFetch-CESI is specifically designed for CESI's ScholarVox portal. Other institutions may have different authentication systems. 
+Yes, for universities connected to ScholarVox via the **Renater** federation (most French public universities). Select login method `(2)` at the prompt. 20+ universities are supported out of the box — see the institution list above. For anything not in the list, add an entry to `src/config/institutions.ts` (entity IDs are at `https://discovery.renater.fr/renater/api.php?search=<name>`).
 
 ### Why does it ask for my credentials again?
 
@@ -266,6 +336,8 @@ Here are some features we're considering for future versions:
 - [ ] **Better error messages:** More helpful error descriptions and recovery suggestions
 - [ ] **Resume support:** Ability to resume interrupted downloads
 - [x] **Table of contents:** Preserve bookmarks and chapter navigation in PDFs
+- [x] **University SSO:** Support for university students via the Renater federation (20+ institutions)
+- [ ] **More institutions:** Expand the SSO institution registry further
 
 Have a feature idea? [Open an issue](https://github.com/0n3m0r3/VoxFetch-CESI/issues) or check out [CONTRIBUTING.md](CONTRIBUTING.md) to submit a PR!
 
