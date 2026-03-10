@@ -6,9 +6,24 @@ import path from "node:path";
 import { PDFDocument } from "pdf-lib";
 import { checkBookStatus } from "./helpers/bookCheck.js";
 import { getBookTitle } from "./helpers/bookMeta.js";
-import { getCredentials } from "./utils/credentials.js";
+import { getCredentials, getRenaterCredentials } from "./utils/credentials.js";
 import { loginCESI } from "./utils/auth.js";
+import { loginRenater } from "./utils/authRenater.js";
+import {
+  SUPPORTED_INSTITUTIONS,
+  listInstitutions,
+} from "./config/institutions.js";
 import { addLinksToPdf, LinkData } from "./utils/pdfLinks.js";
+
+type AuthConfig =
+  | { method: "cesi"; email: string; password: string }
+  | {
+      method: "renater";
+      institutionKey: string;
+      entityId: string;
+      username: string;
+      password: string;
+    };
 
 const DEBUG = process.argv.includes("--debug") || process.argv.includes("-d");
 
@@ -105,11 +120,14 @@ async function validateBook(docid: string): Promise<boolean> {
   }
 }
 
-async function downloadBook(docid: string, outputPath: string) {
+async function downloadBook(
+  docid: string,
+  outputPath: string,
+  authConfig: AuthConfig
+) {
   log(`\nBook ID: ${docid}`);
   log(`Output: ${outputPath}\n`);
 
-  const creds = await getCredentials();
   const browser = await chromium.launch({
     headless: true,
     args: [
@@ -125,9 +143,23 @@ async function downloadBook(docid: string, outputPath: string) {
 
   try {
     const loginSpinner = new Spinner();
-    loginSpinner.start("Logging in to CESI...");
-    log(`Email: ${creds.email}`);
-    await loginCESI(page, creds.email, creds.password, DEBUG);
+    if (authConfig.method === "cesi") {
+      loginSpinner.start("Logging in (CESI)...");
+      log(`Email: ${authConfig.email}`);
+      await loginCESI(page, authConfig.email, authConfig.password, DEBUG);
+    } else {
+      loginSpinner.start(
+        `Logging in via SSO (${SUPPORTED_INSTITUTIONS[authConfig.institutionKey]?.label ?? authConfig.institutionKey})...`
+      );
+      log(`Username: ${authConfig.username}`);
+      await loginRenater(
+        page,
+        authConfig.entityId,
+        authConfig.username,
+        authConfig.password,
+        DEBUG
+      );
+    }
     loginSpinner.stop("Login successful!");
 
     const loader = new Spinner();
@@ -398,7 +430,7 @@ async function downloadBook(docid: string, outputPath: string) {
 async function main() {
   console.log("\n" + "=".repeat(70));
   console.log("  VOXFETCH-CESI");
-  console.log("  ScholarVox Book Downloader for CESI Students");
+  console.log("  ScholarVox Book Downloader");
   console.log("=".repeat(70));
   if (DEBUG) console.log("  Debug mode enabled");
   console.log("");
@@ -438,8 +470,72 @@ async function main() {
     outputPath += ".pdf";
   }
 
+  // ---- Auth method selection ----
+  const authFlagIdx = process.argv.indexOf("--auth");
+  const authFlag =
+    authFlagIdx !== -1 ? process.argv[authFlagIdx + 1] : undefined;
+  const instFlagIdx = process.argv.indexOf("--institution");
+  const instFlag =
+    instFlagIdx !== -1 ? process.argv[instFlagIdx + 1] : undefined;
+
+  let authMethod: "cesi" | "renater";
+  if (authFlag === "cesi") {
+    authMethod = "cesi";
+  } else if (authFlag === "renater") {
+    authMethod = "renater";
+  } else {
+    console.log("Login method:");
+    console.log("  (1) CESI");
+    console.log("  (2) University SSO (via Renater federation)");
+    const choice = await ask("Select login method (default: 1): ");
+    authMethod = choice.trim() === "2" ? "renater" : "cesi";
+  }
+
+  let authConfig: AuthConfig;
+
+  if (authMethod === "cesi") {
+    const creds = await getCredentials();
+    authConfig = {
+      method: "cesi",
+      email: creds.email,
+      password: creds.password,
+    };
+  } else {
+    const institutions = listInstitutions();
+    let institutionKey: string;
+    let entityId: string;
+
+    if (instFlag && SUPPORTED_INSTITUTIONS[instFlag]) {
+      institutionKey = instFlag;
+      entityId = SUPPORTED_INSTITUTIONS[instFlag].entityId;
+      console.log(`Institution: ${SUPPORTED_INSTITUTIONS[instFlag].label}`);
+    } else {
+      console.log("\nSupported institutions:");
+      institutions.forEach((inst, i) => {
+        console.log(`  (${i + 1}) ${inst.label}`);
+      });
+      const instChoice = await ask("Select institution: ");
+      const idx = parseInt(instChoice.trim(), 10) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= institutions.length) {
+        console.log("Invalid institution selection.\n");
+        process.exit(1);
+      }
+      institutionKey = institutions[idx].key;
+      entityId = institutions[idx].entityId;
+    }
+
+    const creds = await getRenaterCredentials(institutionKey);
+    authConfig = {
+      method: "renater",
+      institutionKey,
+      entityId,
+      username: creds.username,
+      password: creds.password,
+    };
+  }
+
   console.log("");
-  await downloadBook(docid, outputPath);
+  await downloadBook(docid, outputPath, authConfig);
 }
 
 main().catch(err => {
@@ -456,9 +552,7 @@ main().catch(err => {
  * The page containers have CSS transforms applied, so we need to get the
  * untransformed dimensions from the .pf element's style attribute.
  */
-async function extractLinksFromPage(
-  page: import("playwright").Page
-): Promise<{
+async function extractLinksFromPage(page: import("playwright").Page): Promise<{
   links: LinkData[];
   debug?: {
     cssW0: number;
