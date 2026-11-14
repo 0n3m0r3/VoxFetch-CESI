@@ -31,6 +31,10 @@ export const SUPPORTED_INSTITUTIONS: Record<string, Institution> = {
     label: "Université de Caen Normandie",
     entityId: "https://idp4.unicaen.fr/idp/shibboleth",
   },
+  "univ-cergy": {
+    label: "CY Cergy Paris Université",
+    entityId: "https://idp.cyu.fr/idp/shibboleth",
+  },
   "univ-grenoble": {
     label: "Université Grenoble Alpes",
     entityId: "https://shibboleth.univ-grenoble-alpes.fr/idp/shibboleth",
